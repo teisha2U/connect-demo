@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Creates a basic Amazon Connect instance
+
+Parameters:
+  Stage:
+    Type: String
+    Description: dev | test | prod
+  Project:
+    Type: String
+    Description: Tag project name
+  InstanceName:
+    Type: String
+    Description: Name of the Amazon Connect instance
+
+Resources:
+  ConnectBucket:
+    Type: AWS::S3::Bucket
+
+  ConnectInstance:
+    Type: AWS::Connect::Instance
+    Properties:
+      InstanceAlias: !Ref InstanceName
+      IdentityManagementType: CONNECT_MANAGED
+      Attributes:
+        ContactflowLogs: true
+        InboundCalls: true
+        OutboundCalls: true
+      Tags:
+        - Key: Stage
+          Value: !Ref Stage
+        - Key: Project
+          Value: !Ref Project
+
+Outputs:
+  ConnectInstanceName:
+    Value: !Ref InstanceName
+    Description: Connect Instance Name
+  ConnectInstanceId:
+    Value: !Ref ConnectInstance
+    Description: ID of the created Amazon Connect instance

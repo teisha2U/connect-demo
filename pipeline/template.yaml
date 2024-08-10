@@ -1,0 +1,110 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >
+  Deploys pipeline for all environments
+
+Parameters:
+  Project:
+    Description: Resource Tag
+    Type: String
+  RepoName:
+    Description: The git repository name
+    Type: String
+  RepoDevBranch:
+    Default: master
+    Description: The name of the development source branch
+    Type: String
+  RepoStagingBranch:
+    Default: staging
+    Description: The name of the staging source branch
+    Type: String
+  RepoProductionBranch:
+    Default: production
+    Description: The name of the prod source branch
+    Type: String
+  DevEnvFile:
+    Default: test
+    Description: Name of the dev shell env file in environments folder, without .sh
+    Type: String
+  StagingEnvFile:
+    Default: staging
+    Description: Name of the staging shell env file in environments folder, without .sh
+    Type: String
+  ProductionEnvFile:
+    Default: production
+    Description: Name of the production shell env file in environments folder, without .sh
+    Type: String
+  ArtifactBucketName:
+    Description: Where to store deploy artifacts
+    Type: String
+  BuildSpec:
+    Default: pipeline/buildspec.yml
+    Description: Location of your build spec file relative to your repo root
+    Type: String
+
+Resources:
+  # Bootstrap and artefact bucket
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Ref ArtifactBucketName
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Project
+          Value: !Ref Project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  PipelineDev:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Location: !Ref ArtifactBucket
+        Type: S3
+      DisableInboundStageTransitions: []
+      Name: !Sub ${AWS::StackName}-dev
+      RoleArn: !GetAtt [PipelineRole, Arn]
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: DownloadSource
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeCommit
+                Version: "1"
+              Configuration:
+                RepositoryName: !Ref "RepoName"
+                BranchName: !Ref "RepoDevBranch"
+                PollForSourceChanges: true
+              OutputArtifacts:
+                - Name: DevSource
+              RunOrder: "1"
+        - Name: Build
+          Actions:
+            - Name: Build
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: "1"
+              InputArtifacts:
+                - Name: DevSource
+              OutputArtifacts:
+                - Name: !Ref "RepoDevBranch"
+              Configuration:
+                ProjectName: !Ref CodeBuildDevProject
+              RunOrder: "1"
