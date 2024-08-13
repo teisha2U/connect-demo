@@ -248,7 +248,6 @@ Resources:
             - value: laserjet
             - value: inkjet
             - value: deskjet
-            - value: HP printer
             - value: printer
         - sampleValue:
             value: scanner
@@ -308,8 +307,6 @@ Resources:
         - sampleValue:
             value: "techsupport"
         - sampleValue:
-            value: "HP tech support"
-        - sampleValue:
             value: "repair"
         - sampleValue:
             value: "technical issues"
@@ -343,8 +340,6 @@ Resources:
             value: "issue"
         - sampleValue:
             value: "setting up"
-        - sampleValue:
-            value: "HP support"
         - sampleValue:
             value: "technician"
         - sampleValue:
