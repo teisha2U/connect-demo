@@ -3,9 +3,13 @@ const path = require("path");
 const esbuild = require("esbuild");
 
 const builderDir = "cfn-lex-resources";
+const lexDir = "lexbots/src";
 const outDir = "dist";
 // const entryPoints = fs.readdirSync(path.join(__dirname, functionsDir)).map((entry) => `${functionsDir}/${entry}/index.ts`);
-const entryPoints = [path.join(__dirname, builderDir, "index.js")];
+const entryPoints = [
+  path.join(__dirname, builderDir, "index.js"),
+  path.join(__dirname, lexDir, "index.js"),
+];
 
 esbuild.build({
   entryPoints,

@@ -28,9 +28,6 @@ Parameters:
   SessionTTLSeconds:
     Type: Number
     Default: 300
-  BotName:
-    Type: String
-    Default: "Sample"
 
 Globals:
   Function:
@@ -164,89 +161,24 @@ Resources:
               Resource:
                 - !Sub arn:aws:connect:${AWS::Region}:${AWS::AccountId}:instance/${ConnectInstanceId}
 
-  RoutingCloudwatchLogGroup:
-    Type: AWS::Logs::LogGroup
+  SampleRoutingLexbot:
+    Type: AWS::Serverless::Application
     Properties:
-      # KmsKeyId: String
-      LogGroupName: !Sub "lex_${Prefix}_${BotName}LogGroup"
-
-  CloudWatchLexRole:
-    Type: AWS::IAM::Role
-    Properties:
-      Path: /
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Action: sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service: lex.amazonaws.com
-          - Action: sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service: cloudformation.amazonaws.com
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
-      Policies:
-        - PolicyName: !Sub "${BotName}CloudwatchGroup"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Sid: cloudwatchLogs
-                Effect: "Allow"
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                Resource:
-                  - !GetAtt RoutingCloudwatchLogGroup.Arn
-                  - Fn::Join:
-                      - ":"
-                      - - "arn:aws:logs"
-                        - Ref: AWS::Region
-                        - Ref: AWS::AccountId
-                        - "log-group:*"
-              - Effect: Allow
-                Action:
-                  - "s3:PutObject"
-                Resource: !Sub "arn:aws:s3:::${ConversationLogBucket}/*"
-
-  SampleRoutingBot:
-    Type: Custom::LexV2Bot
-    Properties:
-      ServiceToken: !GetAtt CfnLexResourcesFunction.Arn
-      DeployVersion: "1.0.0"
-      prefix: !Ref Prefix
-      name: !Ref BotName
-      dataPrivacy:
-        childDirected: false # this will always be false
-      idleSessionTTLInSeconds: !Ref SessionTTLSeconds
-      roleArn: !GetAtt CloudWatchLexRole.Arn #
-      description: Determine routing to Contact Flows based on intents for department bots
-      botTags:
+      Location: lexbots/template.yaml
+      Parameters:
         Project: !Ref Project
         Environment: !Ref Stage
-  # SampleRoutingLexbot:
-  #   Type: AWS::Serverless::Application
-  #   Properties:
-  #     Location: lexbots/.aws-sam/build/template.yaml
-  #     Parameters:
-  #       Client: !Ref Client
-  #       Project: !Ref Project
-  #       Environment: !Ref Environment
-  #       ConversationLogBucket: !Ref ConversationLogBucket
-  #       LexDataTableName: !Ref LexDataTable
-  #       ConnectDataTableName: !Ref ConnectDataTable
-  #       Prefix: !Sub "${Prefix}_${Environment}_Rout"
-  #       CustomLexCFResourcesArn: !GetAtt CfnLexResourcesFunction.Arn
-  #       LoggingLevel: !Ref LoggingLevel
-  #       ConnectInstance: !Sub arn:aws:connect:${AWS::Region}:${AWS::AccountId}:instance/${ConnectInstanceId}
+        ConversationLogBucket: !Ref ConversationLogBucket
+        LexDataTableName: !Ref LexDataTable
+        Prefix: !Sub "${Prefix}_${Stage}_Rout"
+        CustomLexCFResourcesArn: !GetAtt CfnLexResourcesFunction.Arn
+        ConnectInstance: !Sub arn:aws:connect:${AWS::Region}:${AWS::AccountId}:instance/${ConnectInstanceId}
 
 Outputs:
   CustomLexCFResourcesArn:
     Value: !GetAtt CfnLexResourcesFunction.Arn
   LexDataTableName:
     Value: !Ref LexDataTable
-  # RoutingBot:
-  #   Description: The name of the main bot that will route calls to the other contact flows
-  #   Value: !GetAtt [SampleRoutingLexbot, Outputs.RoutingBotName]
+  RoutingBot:
+    Description: The name of the main bot that will route calls to the other contact flows
+    Value: !GetAtt [SampleRoutingLexbot, Outputs.RoutingBotName]

@@ -64,7 +64,7 @@ STACK_NAME=demo-${CONNECT_ID}
 sam deploy -t .aws-sam/build/template.yaml \
   --s3-bucket ${S3_BUCKET} \
   --s3-prefix connect-demo-bot-builder \
-  --capabilities CAPABILITY_IAM \
+  --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
   --stack-name ${STACK_NAME} \
   --parameter-overrides \
   ParameterKey=ConnectInstanceId,ParameterValue=${CONNECT_ID} \

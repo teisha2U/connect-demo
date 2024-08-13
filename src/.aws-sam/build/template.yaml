@@ -28,9 +28,6 @@ Parameters:
   SessionTTLSeconds:
     Type: Number
     Default: 300
-  BotName:
-    Type: String
-    Default: Sample
 Globals:
   Function:
     Runtime: nodejs14.x
@@ -162,82 +159,29 @@ Resources:
           - Fn::Sub: arn:aws:connect:${AWS::Region}:${AWS::AccountId}:instance/${ConnectInstanceId}
     Metadata:
       SamResourceId: CfnLexResourcesFunction
-  RoutingCloudwatchLogGroup:
-    Type: AWS::Logs::LogGroup
+  SampleRoutingLexbot:
+    Type: AWS::Serverless::Application
     Properties:
-      LogGroupName:
-        Fn::Sub: lex_${Prefix}_${BotName}LogGroup
-  CloudWatchLexRole:
-    Type: AWS::IAM::Role
-    Properties:
-      Path: /
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-        - Action: sts:AssumeRole
-          Effect: Allow
-          Principal:
-            Service: lex.amazonaws.com
-        - Action: sts:AssumeRole
-          Effect: Allow
-          Principal:
-            Service: cloudformation.amazonaws.com
-      ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
-      Policies:
-      - PolicyName:
-          Fn::Sub: ${BotName}CloudwatchGroup
-        PolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-          - Sid: cloudwatchLogs
-            Effect: Allow
-            Action:
-            - logs:CreateLogGroup
-            - logs:CreateLogStream
-            - logs:PutLogEvents
-            Resource:
-            - Fn::GetAtt:
-              - RoutingCloudwatchLogGroup
-              - Arn
-            - Fn::Join:
-              - ':'
-              - - arn:aws:logs
-                - Ref: AWS::Region
-                - Ref: AWS::AccountId
-                - log-group:*
-          - Effect: Allow
-            Action:
-            - s3:PutObject
-            Resource:
-              Fn::Sub: arn:aws:s3:::${ConversationLogBucket}/*
-  SampleRoutingBot:
-    Type: Custom::LexV2Bot
-    Properties:
-      ServiceToken:
-        Fn::GetAtt:
-        - CfnLexResourcesFunction
-        - Arn
-      DeployVersion: 1.0.0
-      prefix:
-        Ref: Prefix
-      name:
-        Ref: BotName
-      dataPrivacy:
-        childDirected: false
-      idleSessionTTLInSeconds:
-        Ref: SessionTTLSeconds
-      roleArn:
-        Fn::GetAtt:
-        - CloudWatchLexRole
-        - Arn
-      description: Determine routing to Contact Flows based on intents for department
-        bots
-      botTags:
+      Location: SampleRoutingLexbot/template.yaml
+      Parameters:
         Project:
           Ref: Project
         Environment:
           Ref: Stage
+        ConversationLogBucket:
+          Ref: ConversationLogBucket
+        LexDataTableName:
+          Ref: LexDataTable
+        Prefix:
+          Fn::Sub: ${Prefix}_${Stage}_Rout
+        CustomLexCFResourcesArn:
+          Fn::GetAtt:
+          - CfnLexResourcesFunction
+          - Arn
+        ConnectInstance:
+          Fn::Sub: arn:aws:connect:${AWS::Region}:${AWS::AccountId}:instance/${ConnectInstanceId}
+    Metadata:
+      SamResourceId: SampleRoutingLexbot
 Outputs:
   CustomLexCFResourcesArn:
     Value:
@@ -247,3 +191,10 @@ Outputs:
   LexDataTableName:
     Value:
       Ref: LexDataTable
+  RoutingBot:
+    Description: The name of the main bot that will route calls to the other contact
+      flows
+    Value:
+      Fn::GetAtt:
+      - SampleRoutingLexbot
+      - Outputs.RoutingBotName
