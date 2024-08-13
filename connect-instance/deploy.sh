@@ -2,13 +2,14 @@
 set -e                        # Fail script on error
 
 # example: ./connect-instance/deploy.sh dev client lsft-athena-investigations lsoft
+# example: ./connect-instance/deploy.sh dev client sam-deploy-useast1 eds-sandbox
 
 
 STAGE=${1}
 PROJECT=${2}
 S3_BUCKET=${3}                          # Artifact Bucket - must be created beforehand
 PROFILE=${4}
-REGION=us-east-1
+REGION=us-west-2
 
 
 

@@ -83,7 +83,7 @@ function run(fnc, params) {
     whitelistRegions.includes(aws.config.region) &&
     params.enableModelImprovements
   ) {
-    // This comes in as text, should be boolean. // ivan bliskavka, voicefoundry, 9/11/2020
+    // This comes in as text, should be boolean.
     params.enableModelImprovements = { false: false, true: true }[
       params.enableModelImprovements
     ];
@@ -301,7 +301,7 @@ class Lex {
       var name = params.name ? clean(params.name) : this.type + makeid();
       name = params.prefix ? [params.prefix, name].join("_") : name;
 
-      // Original implementation had a suffix, removed for consistent naming //ivan bliskavka, voicefoundry 9/11/2020
+      // Original implementation had a suffix, removed for consistent naming
       // return name.slice(0, 35) + id(5)
       return name.slice(0, 35);
     }
