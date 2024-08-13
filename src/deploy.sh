@@ -1,35 +1,50 @@
 #!/bin/bash -v
-set -e                        # Fail script on error
+set -e
 
-# example: ./deploy.sh client-dev us-east-1 073e9328-9243-4e65-a74e-e06c66112492 client-instance-name artifact-bucket user@client.com
+# example: ./deploy.sh dev client lsft-athena-investigations lsoft b88acd3b-afb8-44d0-8c84-c16e3ee9a68e clientdev
 
-PROFILE=${1}                            # AWS Profile to use for deploy
-REGION=${2}                             # Deployment Region
-CONNECT_ID=${3}                         # Used for naming
-CONNECT_NAME=${4}                       # Used for naming
-S3_BUCKET=${5}                          # Artifact Bucket - must be created beforehand
-ADMIN_USER_EMAIL=${6}                   # Admin Email
 
-CLI_COMMAND="run - ./deploy.sh <AWS_PROFILE> <AWS_REGION> <CONNECT_ID> <CONNECT_NAME> <S3_BUCKET> <ADMIN_USER_EMAIL>"
+STAGE=${1}
+PROJECT=${2}
+S3_BUCKET=${3}                          # Artifact Bucket - must be created beforehand
+PROFILE=${4}                            # AWS Profile to use for deploy
+CONNECT_ID=${5}                         # Used for naming
+CONNECT_NAME=${6}                       # Used for naming
+REGION=us-east-1
 
-if [ -z "$PROFILE" ]
+CLI_COMMAND="run - ./deploy.sh <STAGE> <PROJECT> <S3_BUCKET> <AWS_PROFILE> <CONNECT_ID> <CONNECT_NAME>"
+
+if [ -z "$STAGE" ]
   then
-    echo "Argument profile is required"
+    echo "Argument STAGE is required"
     echo "${CLI_COMMAND}"
     exit 1
 fi
 
-if [ -z "$REGION" ]
+if [ -z "$PROJECT" ]
   then
-    echo "Argument region is required"
+    echo "Argument PROJECT is required"
+    echo "${CLI_COMMAND}"
+    exit 1
+fi
+
+if [ -z "$S3_BUCKET" ]
+  then
+    echo "Argument S3_BUCKET is required"
+    echo "${CLI_COMMAND}"
+    exit 1
+fi
+
+if [ -z "$PROFILE" ]
+  then
+    echo "Argument PROFILE is required"
     echo "${CLI_COMMAND}"
     exit 1
 fi
 
 if [ -z "$CONNECT_ID" ]
   then
-    echo "Argument connect ID is required"
-    echo "${CLI_COMMAND}"
+    echo "Argument CONNECT_ID is required"
     exit 1
 fi
 
@@ -40,22 +55,21 @@ if [ -z "$CONNECT_NAME" ]
     exit 1
 fi
 
-if [ -z "$S3_BUCKET" ]
-  then
-    echo "Argument s3 bucket is required"
-    exit 1
-fi
 
 
 . ./build.sh
 
-STACK_NAME=vf-admin-${CONNECT_ID}
+STACK_NAME=demo-${CONNECT_ID}
 
 sam deploy -t .aws-sam/build/template.yaml \
   --s3-bucket ${S3_BUCKET} \
-  --s3-prefix vf-connect-admin \
+  --s3-prefix connect-demo-bot-builder \
   --capabilities CAPABILITY_IAM \
   --stack-name ${STACK_NAME} \
-  --parameter-overrides ConnectInstanceId=${CONNECT_ID} ConnectInstanceName=${CONNECT_NAME} \
+  --parameter-overrides \
+  ParameterKey=ConnectInstanceId,ParameterValue=${CONNECT_ID} \
+  ParameterKey=ConnectInstanceName,ParameterValue=${CONNECT_NAME} \
+  ParameterKey=Project,ParameterValue=${PROJECT} \
+  ParameterKey=Stage,ParameterValue=${STAGE} \
   --profile ${PROFILE} \
   --region ${REGION}

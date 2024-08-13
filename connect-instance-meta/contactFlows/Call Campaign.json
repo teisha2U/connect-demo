@@ -1,0 +1,198 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "97e698da-3805-4bcf-8a89-340b6851602f",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": 40,
+      "y": 40
+    },
+    "ActionMetadata": {
+      "97e698da-3805-4bcf-8a89-340b6851602f": {
+        "position": {
+          "x": 188.8,
+          "y": 2.4
+        },
+        "children": ["b5009c4e-03fd-4775-a175-86dace831d42"],
+        "overrideConsoleVoice": false,
+        "fragments": {
+          "SetContactData": "b5009c4e-03fd-4775-a175-86dace831d42"
+        },
+        "overrideLanguageAttribute": true
+      },
+      "b5009c4e-03fd-4775-a175-86dace831d42": {
+        "position": {
+          "x": 188.8,
+          "y": 2.4
+        },
+        "dynamicParams": []
+      },
+      "5cdfcbe0-673e-4514-ad4a-175686bc345c": {
+        "position": {
+          "x": 67.2,
+          "y": 205.6
+        }
+      },
+      "7b77bb04-907d-497f-8823-899129f3dc22": {
+        "position": {
+          "x": 824.8,
+          "y": 180
+        }
+      },
+      "Introduction": {
+        "position": {
+          "x": 456.8,
+          "y": 135.2
+        },
+        "isFriendlyName": true
+      },
+      "7e9c8118-3202-4983-bc30-bc00cfc756b6": {
+        "position": {
+          "x": 375.2,
+          "y": 784
+        }
+      },
+      "52890b96-c9ad-4d41-8c68-411f23cd177e": {
+        "position": {
+          "x": 171.2,
+          "y": 381.6
+        },
+        "conditionMetadata": [
+          {
+            "id": "d821dd9b-5a78-4367-a782-09a935aa3ab5",
+            "value": "1"
+          }
+        ]
+      },
+      "End Call Prompt": {
+        "position": {
+          "x": 128,
+          "y": 747.2
+        },
+        "isFriendlyName": true
+      }
+    },
+    "Annotations": [],
+    "name": "Call Campaign",
+    "description": "",
+    "type": "contactFlow",
+    "status": "published",
+    "hash": {}
+  },
+  "Actions": [
+    {
+      "Parameters": {
+        "TextToSpeechVoice": "Joanna"
+      },
+      "Identifier": "97e698da-3805-4bcf-8a89-340b6851602f",
+      "Type": "UpdateContactTextToSpeechVoice",
+      "Transitions": {
+        "NextAction": "b5009c4e-03fd-4775-a175-86dace831d42"
+      }
+    },
+    {
+      "Parameters": {
+        "LanguageCode": "en-US"
+      },
+      "Identifier": "b5009c4e-03fd-4775-a175-86dace831d42",
+      "Type": "UpdateContactData",
+      "Transitions": {
+        "NextAction": "5cdfcbe0-673e-4514-ad4a-175686bc345c",
+        "Errors": [
+          {
+            "NextAction": "5cdfcbe0-673e-4514-ad4a-175686bc345c",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowLoggingBehavior": "Enabled"
+      },
+      "Identifier": "5cdfcbe0-673e-4514-ad4a-175686bc345c",
+      "Type": "UpdateFlowLoggingBehavior",
+      "Transitions": {
+        "NextAction": "52890b96-c9ad-4d41-8c68-411f23cd177e"
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "7b77bb04-907d-497f-8823-899129f3dc22",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "Text": "This is an automated bot trying to sell you something."
+      },
+      "Identifier": "Introduction",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "7b77bb04-907d-497f-8823-899129f3dc22",
+        "Errors": [
+          {
+            "NextAction": "7b77bb04-907d-497f-8823-899129f3dc22",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "7e9c8118-3202-4983-bc30-bc00cfc756b6",
+      "Type": "EndFlowExecution",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "StoreInput": "False",
+        "InputTimeLimitSeconds": "5",
+        "Text": "Please press one to continue"
+      },
+      "Identifier": "52890b96-c9ad-4d41-8c68-411f23cd177e",
+      "Type": "GetParticipantInput",
+      "Transitions": {
+        "NextAction": "End Call Prompt",
+        "Conditions": [
+          {
+            "NextAction": "Introduction",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": ["1"]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "End Call Prompt",
+            "ErrorType": "InputTimeLimitExceeded"
+          },
+          {
+            "NextAction": "End Call Prompt",
+            "ErrorType": "NoMatchingCondition"
+          },
+          {
+            "NextAction": "End Call Prompt",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "Text": "Hanging up"
+      },
+      "Identifier": "End Call Prompt",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "7e9c8118-3202-4983-bc30-bc00cfc756b6",
+        "Errors": [
+          {
+            "NextAction": "7e9c8118-3202-4983-bc30-bc00cfc756b6",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ]
+}

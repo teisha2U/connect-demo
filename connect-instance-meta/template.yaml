@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Configure the deployed Connect Instance
+
+Parameters:
+  Stage:
+    Type: String
+    Description: dev | test | prod
+  Project:
+    Type: String
+    Description: Tag project name
+  ConnectInstanceArn: 
+    Type: String
+    Description: ARN of the Connect Instance that was created
+
+
+Resources:
+  # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-connect-queue.html
+  DailyHoursOfOperation:
+    Type: AWS::Connect::HoursOfOperation
+    Properties:
+      Config: 
+        - Day: MONDAY
+          StartTime: 
+            Hours: 8
+            Minutes: 0
+          EndTime:
+            Hours: 17
+            Minutes: 30
+        - Day: TUESDAY
+          StartTime: 
+            Hours: 8
+            Minutes: 0
+          EndTime:
+            Hours: 17
+            Minutes: 30
+        - Day: WEDNESDAY
+          StartTime: 
+            Hours: 8
+            Minutes: 0
+          EndTime:
+            Hours: 17
+            Minutes: 30
+        - Day: THURSDAY
+          StartTime: 
+            Hours: 8
+            Minutes: 0
+          EndTime:
+            Hours: 17
+            Minutes: 30
+        - Day: FRIDAY
+          StartTime: 
+            Hours: 8
+            Minutes: 0
+          EndTime:
+            Hours: 12
+            Minutes: 0
+      Description: Daily Working Hours
+      InstanceArn: !Ref ConnectInstanceArn
+      Name: Daily
+      Tags: 
+        - Key: Project
+          Value: !Ref Project
+        - Key: Stage
+          Value: !Ref Stage
+      TimeZone: 'America/New_York'  # Dont use abbreviations
+
+  EnrollmentQueue:
+    Type: AWS::Connect::Queue
+    Properties:
+      Description: Queue to send calls to Enrollment Agents
+      HoursOfOperationArn: !Ref DailyHoursOfOperation
+      InstanceArn: !Ref ConnectInstanceArn
+      Name: Enrollments
+      Status: ENABLED
+      Tags: 
+      - Key: Project
+        Value: !Ref Project
+      - Key: Stage
+        Value: !Ref Stage

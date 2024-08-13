@@ -1,14 +1,15 @@
 #!/bin/bash -v
 set -e                        # Fail script on error
 
-# example: ./connect-instance/deploy.sh dev client lsft-athena-investigations
+# example: ./connect-instance/deploy.sh dev client lsft-athena-investigations lsoft
 
 
 STAGE=${1}
 PROJECT=${2}
 S3_BUCKET=${3}                          # Artifact Bucket - must be created beforehand
+PROFILE=${4}
 REGION=us-east-1
-PROFILE=lsoft
+
 
 
 STACK_NAME=connect-${PROJECT}-${STAGE}

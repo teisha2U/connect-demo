@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Configure the LexBots
+
+
+
+  RoutingFulfillmentLambda:
+    Type: AWS::Serverless::Function
+    Properties:    
+      Handler: src/index.RouterIntent
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref LexDataTableName 
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ConnectDataTableName            
+        - Statement: 
+            - Sid: cloudwatchLogs
+              Effect: "Allow"
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+                - logs:DescribeLogStreams
+              Resource:
+                - !GetAtt RoutingCloudwatchLogGroup.Arn  
+                - Fn::Join:
+                    - ":"
+                    - - "arn:aws:logs"
+                      - Ref: AWS::Region
+                      - Ref: AWS::AccountId
+                      - "log-group:*"                
+
+  SampleRoutingBot:
+    Type: Custom::LexV2Bot
+    Properties:
+      ServiceToken: !Ref CustomLexCFResourcesArn
+      DeployVersion: "1.0.0"
+      prefix: !Ref Prefix
+      name: !Ref BotName
+      dataPrivacy: 
+        childDirected: false  # this will always be false
+      idleSessionTTLInSeconds: !Ref SessionTTLSeconds
+      roleArn: !GetAtt CloudWatchLexRole.Arn  # 
+      description: Determine routing to Contact Flows based on intents for department bots
+      botTags: 
+        Client: !Ref Client
+        Project: !Ref Project
+        Environment: !Ref Environment

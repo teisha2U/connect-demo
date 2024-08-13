@@ -1,3 +1,252 @@
-#create an instance
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
 
-This is not an instance
+Description: >
+  Deploys all the objects related to lexbots.
+
+Parameters:
+  Project:
+    Type: String
+    Description: Used for tagging
+  Stage:
+    Type: String
+    Description: Used for tagging
+  ConnectInstanceId:
+    Type: String
+    Description: Used for permissions
+  Prefix:
+    Type: String
+    Description: Will be pre-pended to your bots, intents and custom slots - DO NOT USE UNDERSCORES
+    Default: "zz"
+    MaxLength: 4
+  Locale:
+    Type: String
+    Default: "en-US"
+  VoiceId:
+    Type: String
+    Default: "Joanna"
+  SessionTTLSeconds:
+    Type: Number
+    Default: 300
+  BotName:
+    Type: String
+    Default: "Sample"
+
+Globals:
+  Function:
+    Runtime: nodejs14.x
+
+Resources:
+  LexDataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: skIndex
+          KeySchema:
+            - AttributeName: SK
+              KeyType: HASH
+            - AttributeName: PK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: TTL
+        Enabled: true
+
+  ConversationLogBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+
+  CfnLexResourcesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-cfn-resources"
+      Description: Provides custom resources for deploying lex using CloudFormation. Use !Import CfnLexResourcesArn for the ServiceToken
+      CodeUri: dist/cfn-lex-resources/
+      Runtime: nodejs18.x
+      Handler: index.handler
+      MemorySize: 256
+      Timeout: 900 # There are some waits for state changes on BotLocales and Bots
+      Tags:
+        Type: CustomResource
+      Policies:
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        - arn:aws:iam::aws:policy/AmazonLexFullAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - es:*
+              Resource:
+                - "*"
+            - Effect: Allow
+              Action:
+                - lex:ListBots
+                - lex:PutSlotType
+                - lex:GetSlotType
+                - lex:DeleteSlotType
+                - lex:PutIntent
+                - lex:GetIntent
+                - lex:DeleteIntent
+                - lex:PutBot
+                - lex:GetBot
+                - lex:DeleteBot
+                - lex:PutBotAlias
+                - lex:DeleteBotAlias
+                - lex:GetBotAlias
+                - lex:GetBotVersions
+                - lex:GetIntentVersions
+                - lex:GetSlotTypeVersions
+                - lex:TagResource
+
+                - "lex:CreateBot"
+                - "lex:CreateIntent"
+                - "lex:UpdateSlot"
+                - "lex:DescribeBotLocale"
+                - "lex:UpdateBotAlias"
+                - "lex:CreateSlotType"
+                - "lex:DeleteBotLocale"
+                - "lex:DescribeBot"
+                - "lex:UpdateBotLocale"
+                - "lex:CreateSlot"
+                - "lex:DeleteSlot"
+                - "lex:UpdateBot"
+                - "lex:DeleteSlotType"
+                - "lex:DescribeBotAlias"
+                - "lex:CreateBotLocale"
+                - "lex:DeleteIntent"
+                - "lex:StartImport"
+                - "lex:UpdateSlotType"
+                - "lex:UpdateIntent"
+                - "lex:DescribeImport"
+              Resource:
+                - !Sub "arn:aws:lex:${AWS::Region}:${AWS::AccountId}:bot/*"
+                - !Sub "arn:aws:lex:${AWS::Region}:${AWS::AccountId}:bot-alias/*/*"
+            - Effect: Allow
+              Action:
+                - apigateway:*
+              Resource:
+                - "*"
+            - Effect: Allow
+              Action:
+                - iam:PassRole
+                - iam:PutRolePolicy
+                - iam:AttachRolePolicy
+                - iam:CreateServiceLinkedRole
+                - iam:CreatePolicy
+              Resource:
+                - "*"
+            - Effect: Allow
+              Action:
+                - "s3:*"
+              Resource:
+                - !Sub arn:aws:s3:::${ConversationLogBucket}/*
+                - !Sub arn:aws:s3:::${ConversationLogBucket}
+            - Effect: Allow
+              Action:
+                - connect:AssociateBot
+                - connect:DisassociateBot
+              Resource:
+                - !Sub arn:aws:connect:${AWS::Region}:${AWS::AccountId}:instance/${ConnectInstanceId}
+
+  RoutingCloudwatchLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      # KmsKeyId: String
+      LogGroupName: !Sub "lex_${Prefix}_${BotName}LogGroup"
+
+  CloudWatchLexRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lex.amazonaws.com
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+      Policies:
+        - PolicyName: !Sub "${BotName}CloudwatchGroup"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: cloudwatchLogs
+                Effect: "Allow"
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !GetAtt RoutingCloudwatchLogGroup.Arn
+                  - Fn::Join:
+                      - ":"
+                      - - "arn:aws:logs"
+                        - Ref: AWS::Region
+                        - Ref: AWS::AccountId
+                        - "log-group:*"
+              - Effect: Allow
+                Action:
+                  - "s3:PutObject"
+                Resource: !Sub "arn:aws:s3:::${ConversationLogBucket}/*"
+
+  SampleRoutingBot:
+    Type: Custom::LexV2Bot
+    Properties:
+      ServiceToken: !GetAtt CfnLexResourcesFunction.Arn
+      DeployVersion: "1.0.0"
+      prefix: !Ref Prefix
+      name: !Ref BotName
+      dataPrivacy:
+        childDirected: false # this will always be false
+      idleSessionTTLInSeconds: !Ref SessionTTLSeconds
+      roleArn: !GetAtt CloudWatchLexRole.Arn #
+      description: Determine routing to Contact Flows based on intents for department bots
+      botTags:
+        Project: !Ref Project
+        Environment: !Ref Stage
+  # SampleRoutingLexbot:
+  #   Type: AWS::Serverless::Application
+  #   Properties:
+  #     Location: lexbots/.aws-sam/build/template.yaml
+  #     Parameters:
+  #       Client: !Ref Client
+  #       Project: !Ref Project
+  #       Environment: !Ref Environment
+  #       ConversationLogBucket: !Ref ConversationLogBucket
+  #       LexDataTableName: !Ref LexDataTable
+  #       ConnectDataTableName: !Ref ConnectDataTable
+  #       Prefix: !Sub "${Prefix}_${Environment}_Rout"
+  #       CustomLexCFResourcesArn: !GetAtt CfnLexResourcesFunction.Arn
+  #       LoggingLevel: !Ref LoggingLevel
+  #       ConnectInstance: !Sub arn:aws:connect:${AWS::Region}:${AWS::AccountId}:instance/${ConnectInstanceId}
+
+Outputs:
+  CustomLexCFResourcesArn:
+    Value: !GetAtt CfnLexResourcesFunction.Arn
+  LexDataTableName:
+    Value: !Ref LexDataTable
+  # RoutingBot:
+  #   Description: The name of the main bot that will route calls to the other contact flows
+  #   Value: !GetAtt [SampleRoutingLexbot, Outputs.RoutingBotName]

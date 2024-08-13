@@ -16,6 +16,8 @@ Resources:
   ConnectBucket:
     Type: AWS::S3::Bucket
 
+  # Create Connect Instance
+  # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-connect-instance.html
   ConnectInstance:
     Type: AWS::Connect::Instance
     Properties:
@@ -31,10 +33,62 @@ Resources:
         - Key: Project
           Value: !Ref Project
 
+  # Add Storage requirements
+  # Most artifacts can be sent directly to an S3 bucket
+  # Contact Trace Records (CTRs) and agent events are configured with Kinesis, which can then be directed to a bucket or processed with a lambda
+  # Kinesis needs KMS keys that Connect Instance uses so that it can read the data coming from Connect
+  # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-connect-instancestorageconfig.html
+  # ContactTraceStorageConfig:
+  #   Type: AWS::Connect::InstanceStorageConfig
+  #   Properties:
+  #     InstanceArn: !GetAtt ConnectInstance.Arn
+  #     ResourceType: CONTACT_TRACE_RECORDS
+  #     StorageType: S3
+  #     StorageType: KINESIS_FIREHOSE
+  #     KinesisFirehoseConfig:
+  #       FirehoseArn: !Ref CtrToS3Firehose
+
+  CallRecordingsStorageConfig:
+    Type: AWS::Connect::InstanceStorageConfig
+    Properties:
+      InstanceArn: !GetAtt ConnectInstance.Arn
+      ResourceType: CALL_RECORDINGS
+      StorageType: S3
+      S3Config:
+        BucketName: !Ref ConnectBucket
+        BucketPrefix: !Join
+          - ""
+          - - !Ref Project
+            - "-"
+            - !Ref Stage
+
+  # AgentEventsStorageConfig:
+  #   Type: AWS::Connect::InstanceStorageConfig
+  #   Properties:
+  #     InstanceArn: !GetAtt ConnectInstance.Arn
+  #     ResourceType: AGENT_EVENTS
+  #     StorageType: KINESIS_FIREHOSE
+  #     KinesisFirehoseConfig:
+  #       FirehoseArn: !Ref AgentEventToS3Firehose
+
+  ScheduledReportsStorageConfig:
+    Type: AWS::Connect::InstanceStorageConfig
+    Properties:
+      InstanceArn: !GetAtt ConnectInstance.Arn
+      ResourceType: SCHEDULED_REPORTS
+      StorageType: S3
+      S3Config:
+        BucketName: !Ref ConnectBucket
+        BucketPrefix: !Join
+          - ""
+          - - !Ref Project
+            - "-"
+            - !Ref Stage
+
 Outputs:
   ConnectInstanceName:
     Value: !Ref InstanceName
     Description: Connect Instance Name
-  ConnectInstanceId:
+  ConnectInstanceArn:
     Value: !Ref ConnectInstance
     Description: ID of the created Amazon Connect instance
