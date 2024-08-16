@@ -4,6 +4,9 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   Create the main Lexbot that will branch off to department bots
 
+# AWS Lexbot resources exist - try building with those:
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/AWS_Lex.html
+
 Parameters:
   Project:
     Type: String
